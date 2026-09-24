@@ -1,10 +1,22 @@
+from contextlib import asynccontextmanager
+
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import get_db
+from app import models
+from app.database import Base, engine, get_db
 
-app = FastAPI(title="API Facture Togo")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Au démarrage : crée les tables qui n'existent pas encore (ne touche pas aux données)
+    if engine is not None:
+        Base.metadata.create_all(bind=engine)
+    yield
+
+
+app = FastAPI(title="API Facture Togo", lifespan=lifespan)
 
 
 @app.get("/")
