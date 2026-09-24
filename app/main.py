@@ -4,7 +4,7 @@ from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app import models
+from app import models, schemas
 from app.database import Base, engine, get_db
 
 
@@ -37,3 +37,14 @@ def health_db(db: Session = Depends(get_db)):
     except Exception:
         raise HTTPException(status_code=503, detail="Base de données injoignable")
     return {"database": "ok"}
+
+
+@app.post("/transactions", response_model=schemas.TransactionLue, status_code=201)
+def creer_transaction(donnees: schemas.TransactionCreation, db: Session = Depends(get_db)):
+    valeurs = donnees.model_dump(exclude_none=True)
+    valeurs["mode_paiement"] = donnees.mode_paiement.value
+    transaction = models.Transaction(**valeurs)
+    db.add(transaction)
+    db.commit()
+    db.refresh(transaction)
+    return transaction
