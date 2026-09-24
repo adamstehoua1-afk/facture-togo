@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -48,3 +48,19 @@ def creer_transaction(donnees: schemas.TransactionCreation, db: Session = Depend
     db.commit()
     db.refresh(transaction)
     return transaction
+
+
+@app.get("/transactions", response_model=list[schemas.TransactionLue])
+def lister_transactions(
+    limite: int = Query(100, ge=1, le=1000, description="Nombre maximum de ventes renvoyées"),
+    decalage: int = Query(0, ge=0, description="Nombre de ventes à sauter (pour voir les suivantes)"),
+    db: Session = Depends(get_db),
+):
+    # Les ventes les plus récentes en premier
+    return (
+        db.query(models.Transaction)
+        .order_by(models.Transaction.date.desc(), models.Transaction.id.desc())
+        .offset(decalage)
+        .limit(limite)
+        .all()
+    )
