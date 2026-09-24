@@ -1,13 +1,8 @@
-import os
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from dotenv import load_dotenv
-from fastapi import FastAPI
-
-# Charge les variables du fichier .env (en local uniquement)
-load_dotenv()
-
-# Adresse de la base de données (pas encore utilisée)
-DATABASE_URL = os.getenv("DATABASE_URL")
+from app.database import get_db
 
 app = FastAPI(title="API Facture Togo")
 
@@ -19,4 +14,14 @@ def accueil():
 
 @app.get("/health")
 def health():
+    # Volontairement sans base de données : UptimeRobot l'appelle toutes les 5 minutes
     return {"status": "ok"}
+
+
+@app.get("/health/db")
+def health_db(db: Session = Depends(get_db)):
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        raise HTTPException(status_code=503, detail="Base de données injoignable")
+    return {"database": "ok"}
